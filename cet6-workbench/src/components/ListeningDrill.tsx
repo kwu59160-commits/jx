@@ -15,6 +15,8 @@ import {
   LISTENING_DRILL_PRESETS,
   NOTE_TAKING_SYMBOLS,
 } from '../data/cet6Content';
+import { getListeningSet } from '../data/listeningMaterials';
+import { ListeningMaterialPanel } from './ListeningMaterialPanel';
 import { formatClock, useTimer } from '../hooks/useTimer';
 import type { ListeningLogEntry } from '../types';
 
@@ -48,6 +50,7 @@ export function ListeningDrill({
   const [selectedPresetId, setSelectedPresetId] = useState(LISTENING_DRILL_PRESETS[2].id);
   const activePreset =
     LISTENING_DRILL_PRESETS.find((p) => p.id === selectedPresetId) ?? LISTENING_DRILL_PRESETS[0];
+  const activeSet = getListeningSet(activePreset.id);
 
   const timer = useTimer(activePreset.minutes);
 
@@ -82,6 +85,17 @@ export function ListeningDrill({
     setLogMinutes(found.minutes);
     setLogTotal(found.questions);
     setLogCorrect(Math.min(found.questions, Math.ceil(found.questions * 0.65)));
+    setLogScoreManual('');
+    window.setTimeout(() => {
+      document.getElementById('listening-material')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const handleApplyScore = (correct: number, total: number, label: string) => {
+    setLogDrillType(label);
+    setLogCorrect(correct);
+    setLogTotal(total);
+    setLogMinutes(activePreset.minutes);
     setLogScoreManual('');
   };
 
@@ -162,7 +176,7 @@ export function ListeningDrill({
                     </span>
                   </div>
                   <div className="mt-0.5 truncate text-[11px] text-[var(--ink-muted)]">
-                    {preset.questions} 题 · 点击载入
+                    {preset.questions} 题 · {preset.materialLabel}
                   </div>
                 </button>
               );
@@ -217,6 +231,19 @@ export function ListeningDrill({
               <p className="text-xs leading-relaxed text-[var(--ink-secondary)]">
                 执行要点：{activePreset.tip}
               </p>
+              {activeSet && (
+                <ul className="space-y-1 text-[11px] leading-relaxed text-[var(--ink-secondary)]">
+                  {activeSet.pieces.map((item) => (
+                    <li key={item.id}>
+                      <span className="font-medium text-[var(--ink-primary)]">{item.title}</span>
+                      <span className="font-mono-num text-[var(--ink-muted)]">
+                        {' '}
+                        · {item.questions.length} 题
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <button
@@ -248,6 +275,18 @@ export function ListeningDrill({
                   className="text-xs font-medium text-[var(--accent-teal)] underline underline-offset-4"
                 >
                   填入右侧日志
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById('listening-material')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    })
+                  }
+                  className="text-xs font-medium text-[var(--accent-teal)] underline underline-offset-4"
+                >
+                  播放并作答
                 </button>
               </div>
             </div>
@@ -414,6 +453,8 @@ export function ListeningDrill({
           </div>
         </div>
       </div>
+
+      <ListeningMaterialPanel presetId={activePreset.id} onApplyScore={handleApplyScore} />
 
       {/* Lower Row: CET-6 Listening Traps + Note-taking Symbols */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
